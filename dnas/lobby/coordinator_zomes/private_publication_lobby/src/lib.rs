@@ -58,13 +58,13 @@ fn cap_secret() -> ExternResult<CapSecret> {
     Ok(secret)
 }
 #[hdk_extern]
-fn grant_capability_to_read(authorized_agent: AgentPubKey) -> ExternResult<()> {
+fn grant_capability_to_read(authorized_agent: AgentPubKey) -> ExternResult<CapSecret> {
     let mut assignees: BTreeSet<AgentPubKey> = BTreeSet::new();
     assignees.insert(authorized_agent); // Assign capabilty to the given "authorized_agent"
-
+    let secret = cap_secret()?;
     let access = CapAccess::Assigned {
         // Requests are required to carry this secret and be signed by one of the assignees
-        secret: cap_secret()?,
+        secret,
         assignees,
     };
     let capability_grant = CapGrantEntry {
@@ -75,16 +75,29 @@ fn grant_capability_to_read(authorized_agent: AgentPubKey) -> ExternResult<()> {
 
     create_cap_grant(capability_grant)?;
 
-    Ok(())
+    Ok(secret)
 }
-fn functions_to_grant_capability_for() -> ExternResult<BTreeSet<(ZomeName, FunctionName)>> { // Type required by the HDK API
+fn functions_to_grant_capability_for() -> ExternResult<BTreeSet<(ZomeName, FunctionName)>> {
+    // Type required by the HDK API
     let zome_name = zome_info()?.name; // Getting the zome name
     let function_name = FunctionName(String::from("request_read_all_posts")); // Wrapper around a "String"
-  
+
     let mut functions: BTreeSet<(ZomeName, FunctionName)> = BTreeSet::new();
     functions.insert((zome_name, function_name)); // Granting access to the function in this zome
-  
+
     Ok(functions)
+}
+
+#[hdk_extern]
+fn store_capability_claim(secret: CapSecret) -> ExternResult<()> {
+    let cap_claim = CapClaimEntry {
+        // Built-in private entry
+        grantor: progenitor(())?, // Just to remember which agent to call
+        secret,  // Store the secret
+        tag: String::from(""), // Can be different from the tag in the grant
+    };
+    create_cap_claim(cap_claim)?;
+    Ok(())
 }
 /** Don't change */
 #[cfg(feature = "exercise")]
