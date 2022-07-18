@@ -159,7 +159,7 @@ export default () =>
 
         if (isExercise && stepNum === 5) return;
 
-      });
+      }, true, { timeout: 30000 });
     } catch (e) {
       console.log(e);
       process.exit(1);
