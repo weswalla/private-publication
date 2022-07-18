@@ -102,7 +102,9 @@ fn store_capability_claim(secret: CapSecret) -> ExternResult<()> {
 
 fn query_cap_claim_for() -> ExternResult<CapClaim> {
     let cap_claim_entry_type: EntryType = EntryType::CapClaim;
-    let filter = ChainQueryFilter::new().entry_type(cap_claim_entry_type).include_entries(true);
+    let filter = ChainQueryFilter::new()
+        .entry_type(cap_claim_entry_type)
+        .include_entries(true);
 
     let mut all_my_cap_claims = query(filter)?; // Only the records whose action is of type "CreateLink"
     if all_my_cap_claims.len() < 1 {
@@ -133,39 +135,6 @@ fn query_cap_claim_for() -> ExternResult<CapClaim> {
             "record entry is not stored"
         )))),
     }
-    // if let RecordEntry::Present(entry) = claim_record.entry {
-    //     Ok(entry
-    //         .as_cap_claim()
-    //         .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
-    //             "could not convert from entry to cap claim"
-    //         ))))?
-    //         .clone())
-    // } else {
-    //     Err(wasm_error!(WasmErrorInner::Guest(String::from(
-    //         "could not get entry from record"
-    //     ))))
-    // }
-    // Ok(claim_record
-    // .entry
-    // .into_option()
-    // .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
-    //     "could not get entry from record"
-    // ))))?
-    // .as_cap_claim()
-    // .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
-    //     "could not convert from entry to cap claim"
-    // ))))?
-    // .clone())
-    // let thing = all_my_cap_claims
-    //     .iter()
-    //     .filter_map(|record| record.clone().entry.into_option())
-    //     .filter_map(|entry| entry.clone().as_cap_claim().map(|c| c.clone()))
-    //     .collect::<Vec<CapClaim>>().pop().unwrap();
-    // .find(|cap_claim| cap_claim.clone().tag == String::from("progenitor_all_posts"))
-    // .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
-    //     "no cap claim found"
-    // ))))?;
-    // Ok(thing.clone())
 }
 #[hdk_extern]
 fn read_all_posts(_: ()) -> ExternResult<Vec<Record>> {
