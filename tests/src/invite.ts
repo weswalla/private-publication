@@ -364,7 +364,7 @@ export default () =>
         } catch (e) {
           t.ok(true);
         }
-      });
+      }, true, { timeout: 30000 });
     } catch (e) {
       console.log(e);
       process.exit(1);
