@@ -16,8 +16,6 @@ pub fn is_membrane_proof_valid(
     } else {
         match membrane_proof {
             Some(membrane_proof_bytes) => {
-                // let record: Record = membrane_proof_bytes.try_into()?;
-                // let record: Record = Record::try_from(membrane_proof_bytes.into_raw())?;
                 let record =
                     Record::try_from(Arc::try_unwrap(membrane_proof_bytes).map_err(|_e| {
                         wasm_error!(WasmErrorInner::Guest(String::from(
