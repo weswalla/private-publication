@@ -30,5 +30,11 @@ pub fn validate_update_post(
     action: Update,
     new_entry: Entry,
 ) -> ExternResult<ValidateCallbackResult> {
-    Ok(ValidateCallbackResult::Valid)
+// Ok(ValidateCallbackResult::Valid)
+    if original_action.author().clone() == action.author {
+        Ok(ValidateCallbackResult::Valid)
+    }
+    else {
+        Ok(ValidateCallbackResult::Invalid(String::from("only the original author can update a post")))
+    }
 }
