@@ -1,9 +1,19 @@
 use ::hdk::prelude::*;
-use hdk::prelude::holo_hash::AgentPubKeyB64;
+use hdk::prelude::holo_hash::{AgentPubKeyB64, DnaHash};
+use membrane_proof::PrivatePublicationMembraneProof;
 
 #[derive(Serialize, Deserialize, Debug, SerializedBytes)]
 struct Properties {
     progenitor: AgentPubKeyB64,
+}
+#[hdk_entry_defs]
+#[unit_enum(UnitTypes)]
+enum EntryTypes {
+    PrivatePublicationMembraneProof(PrivatePublicationMembraneProof),
+}
+#[hdk_link_types]
+enum LinkTypes {
+    AgentToMembraneProof,
 }
 
 #[hdk_extern]
@@ -173,6 +183,64 @@ fn read_all_posts(_: ()) -> ExternResult<Vec<Record>> {
         ZomeCallResponse::CountersigningSession(err) => Err(wasm_error!(WasmErrorInner::Guest(
             format!("There was a network error: {:?}", err)
         ))),
+    }
+}
+#[hdk_extern]
+fn create_membrane_proof_for(agent_pub_key: AgentPubKey) -> ExternResult<()> {
+    let response = call(
+        CallTargetCell::OtherRole(String::from("private_publication")),
+        ZomeName::from(String::from("posts")),
+        FunctionName::from(String::from("get_dna_hash")),
+        None,
+        (),
+    )?;
+    let dna_hash = match response {
+        ZomeCallResponse::Ok(result) => {
+            // ExternIO is a wrapper around a byte array
+            let dna_hash: DnaHash = result.decode().map_err(|err| wasm_error!(err.into()))?; // Deserialize byte array
+            Ok(dna_hash)
+        }
+        ZomeCallResponse::Unauthorized(_, _, _, _) => {
+            // Callee deleted the capability grant
+            Err(wasm_error!(WasmErrorInner::Guest(
+                "Agent revoked the capability".into()
+            )))
+        }
+        ZomeCallResponse::NetworkError(err) => {
+            // Network error, we could try again
+            Err(wasm_error!(WasmErrorInner::Guest(format!(
+                "There was a network error: {:?}",
+                err
+            ))))
+        }
+        ZomeCallResponse::CountersigningSession(err) => Err(wasm_error!(WasmErrorInner::Guest(
+            format!("There was a network error: {:?}", err)
+        ))),
+    }?;
+    let membrane_proof = PrivatePublicationMembraneProof {
+        recipient: agent_pub_key.clone(),
+        dna_hash,
+    };
+    let action_hash = create_entry(EntryTypes::PrivatePublicationMembraneProof(membrane_proof))?;
+    create_link(agent_pub_key.clone(), action_hash, LinkTypes::AgentToMembraneProof, ())?;
+    Ok(())
+}
+#[hdk_extern]
+fn get_my_membrane_proof(_: ()) -> ExternResult<Option<Record>> {
+    let mut links = get_links(
+        agent_info()?.agent_initial_pubkey,
+        LinkTypes::AgentToMembraneProof,
+        None,
+    )?;
+    if links.len() < 1 {
+        Ok(None)
+    } else {
+        let link = links
+            .pop()
+            .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
+                "error getting link from links"
+            ))))?;
+        get::<ActionHash>(link.target.into(), GetOptions::default())
     }
 }
 /** Don't change */
